@@ -1,0 +1,175 @@
+{
+  "entities": {
+    "Cliente": {
+      "title": "Cliente",
+      "description": "Perfil de cliente registrado",
+      "type": "object",
+      "properties": {
+        "nombre": {
+          "type": "string",
+          "description": "Nombre completo"
+        },
+        "usuario": {
+          "type": "string",
+          "description": "Nombre de usuario único"
+        },
+        "email": {
+          "type": "string",
+          "format": "email",
+          "description": "Correo electrónico"
+        },
+        "nacimiento": {
+          "type": "string",
+          "description": "Fecha de nacimiento"
+        },
+        "telefono": {
+          "type": "string",
+          "description": "Número de teléfono (opcional)"
+        },
+        "creado": {
+          "type": "number",
+          "description": "Timestamp de creación"
+        }
+      },
+      "required": ["nombre", "usuario", "email", "nacimiento", "creado"]
+    },
+    "Mensaje": {
+      "title": "Mensaje",
+      "description": "Mensaje cifrado con el PIN del cliente",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "ID único de recuperación"
+        },
+        "nombre": {
+          "type": "string",
+          "description": "Nombre de la persona a la que va dirigida"
+        },
+        "ref": {
+          "type": "string",
+          "description": "Referencia de Bizum o tipo de origen (venta, regalo, mercado)"
+        },
+        "origen": {
+          "type": "string",
+          "description": "Indica el origen del mensaje si fue traspasado"
+        },
+        "fecha": {
+          "type": "string",
+          "description": "Fecha de sellado en formato legible"
+        },
+        "creado": {
+          "type": "number",
+          "description": "Timestamp de creación"
+        },
+        "uid": {
+          "type": "string",
+          "description": "ID del usuario propietario en Auth (opcional)"
+        },
+        "salt": {
+          "type": "string",
+          "description": "Sal criptográfica en Base64 para derivar clave"
+        },
+        "iv": {
+          "type": "string",
+          "description": "Vector de inicialización Base64 para AES-GCM"
+        },
+        "datos": {
+          "type": "string",
+          "description": "Mensaje cifrado en Base64"
+        }
+      },
+      "required": ["id", "nombre", "ref", "fecha", "creado", "salt", "iv", "datos"]
+    },
+    "Anuncio": {
+      "title": "Anuncio",
+      "description": "Anuncio público de un mensaje a la venta en el Mercado",
+      "type": "object",
+      "properties": {
+        "mensajeId": {
+          "type": "string",
+          "description": "ID único del mensaje en venta"
+        },
+        "precio": {
+          "type": "number",
+          "description": "Precio de venta en euros"
+        },
+        "bizum": {
+          "type": "string",
+          "description": "Número de teléfono para el pago por Bizum"
+        },
+        "vendedorUid": {
+          "type": "string",
+          "description": "ID de usuario Auth del vendedor"
+        },
+        "vendedor": {
+          "type": "string",
+          "description": "Nombre de usuario o nombre completo del vendedor"
+        },
+        "fecha": {
+          "type": "string",
+          "description": "Fecha de publicación"
+        },
+        "creado": {
+          "type": "number",
+          "description": "Timestamp de publicación"
+        }
+      },
+      "required": ["mensajeId", "precio", "bizum", "vendedorUid", "vendedor", "fecha", "creado"]
+    },
+    "Venta": {
+      "title": "Venta",
+      "description": "Registro de una venta directa realizada entre clientes",
+      "type": "object",
+      "properties": {
+        "mensajeId": {
+          "type": "string",
+          "description": "ID único del mensaje vendido"
+        },
+        "precio": {
+          "type": "number",
+          "description": "Precio de venta en euros"
+        },
+        "vendedorUid": {
+          "type": "string",
+          "description": "ID de usuario Auth del vendedor"
+        },
+        "vendedorNombre": {
+          "type": "string",
+          "description": "Nombre del vendedor"
+        },
+        "comprador": {
+          "type": "string",
+          "description": "Nombre del comprador"
+        },
+        "fecha": {
+          "type": "string",
+          "description": "Fecha de la transacción"
+        },
+        "creado": {
+          "type": "number",
+          "description": "Timestamp de la transacción"
+        }
+      },
+      "required": ["mensajeId", "precio", "vendedorUid", "vendedorNombre", "comprador", "fecha", "creado"]
+    }
+  },
+  "firestore": {
+    "clientes/{userId}": {
+      "schema": { "$ref": "#/entities/Cliente" },
+      "description": "Colección de perfiles de clientes de la aplicación"
+    },
+    "mensajes/{mensajeId}": {
+      "schema": { "$ref": "#/entities/Mensaje" },
+      "description": "Colección de mensajes sellados y cifrados"
+    },
+    "mercado/{mensajeId}": {
+      "schema": { "$ref": "#/entities/Anuncio" },
+      "description": "Colección de anuncios públicos en el Mercado"
+    },
+    "ventas/{mensajeId}": {
+      "schema": { "$ref": "#/entities/Venta" },
+      "description": "Historial de ventas directas realizadas"
+    }
+  }
+}

@@ -1,0 +1,46 @@
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&family=EB+Garamond:ital,wght@0,400;0,500;1,400&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-serif: "EB Garamond", Georgia, serif;
+  --font-display: "Cinzel", serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+
+  --color-stone: #E8E6E0;
+  --color-stone-2: #DBD8CF;
+  --color-ink: #24251F;
+  --color-ink-soft: #565349;
+  --color-wax: #7E1B1B;
+  --color-wax-dark: #5C1212;
+  --color-bronze: #96784A;
+  --color-card: #F2F0EA;
+}
+
+@layer base {
+  body {
+    background-color: var(--color-stone);
+    background-image: radial-gradient(ellipse at 50% -10%, #F0EEE8 0%, var(--color-stone) 55%);
+    color: var(--color-ink);
+    font-family: var(--font-serif);
+    font-size: 18px;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+}
+
+@keyframes romper {
+  0% { transform: scale(1) rotate(0deg); }
+  30% { transform: scale(1.06) rotate(-2deg); }
+  60% { transform: scale(0.9) rotate(3deg); opacity: 1; }
+  100% { transform: scale(1.35) rotate(8deg); opacity: 0; }
+}
+
+@keyframes pluma {
+  0%, 100% { transform: rotate(-4deg); }
+  50% { transform: rotate(6deg) translateY(-4px); }
+}
+
+.pluma-anim {
+  animation: pluma 1.2s ease-in-out infinite;
+}

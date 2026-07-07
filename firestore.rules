@@ -1,0 +1,123 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // 1. Global Safety Net - catch-all default deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Helper: Is Signed In
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    // Helper: Valid ID Format
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    // Helper: Validate Cliente Entity Schema
+    function isValidCliente(data) {
+      return data.keys().hasAll(['nombre', 'usuario', 'email', 'nacimiento', 'creado'])
+        && data.keys().size() <= 6
+        && data.nombre is string && data.nombre.size() > 0 && data.nombre.size() <= 100
+        && data.usuario is string && data.usuario.size() >= 3 && data.usuario.size() <= 30
+        && data.email is string && data.email.size() > 0 && data.email.size() <= 100
+        && data.nacimiento is string && data.nacimiento.size() == 10
+        && data.creado is number
+        && (!data.keys().hasAny(['telefono']) || (data.telefono is string && data.telefono.size() <= 20));
+    }
+
+    // Helper: Validate Mensaje Entity Schema
+    function isValidMensaje(data) {
+      return data.keys().hasAll(['id', 'nombre', 'ref', 'fecha', 'creado', 'salt', 'iv', 'datos'])
+        && data.keys().size() <= 10
+        && data.id is string && data.id.size() <= 128
+        && data.nombre is string && data.nombre.size() > 0 && data.nombre.size() <= 100
+        && data.ref is string && data.ref.size() <= 100
+        && data.fecha is string && data.fecha.size() <= 50
+        && data.creado is number
+        && data.salt is string && data.salt.size() <= 100
+        && data.iv is string && data.iv.size() <= 100
+        && data.datos is string && data.datos.size() <= 20000
+        && (!data.keys().hasAny(['uid']) || data.uid == null || (data.uid is string && data.uid.size() <= 128))
+        && (!data.keys().hasAny(['origen']) || data.origen is string && data.origen.size() <= 200);
+    }
+
+    // Helper: Validate Anuncio Entity Schema (Marketplace)
+    function isValidAnuncio(data) {
+      return data.keys().hasAll(['mensajeId', 'precio', 'bizum', 'vendedorUid', 'vendedor', 'fecha', 'creado'])
+        && data.keys().size() == 7
+        && data.mensajeId is string && data.mensajeId.size() <= 128
+        && data.precio is number && data.precio >= 0 && data.precio <= 1000
+        && data.bizum is string && data.bizum.size() >= 7 && data.bizum.size() <= 30
+        && data.vendedorUid is string && data.vendedorUid.size() <= 128
+        && data.vendedor is string && data.vendedor.size() > 0 && data.vendedor.size() <= 100
+        && data.fecha is string && data.fecha.size() <= 50
+        && data.creado is number;
+    }
+
+    // Helper: Validate Venta Entity Schema
+    function isValidVenta(data) {
+      return data.keys().hasAll(['mensajeId', 'precio', 'vendedorUid', 'vendedorNombre', 'comprador', 'fecha', 'creado'])
+        && data.keys().size() == 7
+        && data.mensajeId is string && data.mensajeId.size() <= 128
+        && data.precio is number && data.precio >= 0 && data.precio <= 1000
+        && data.vendedorUid is string && data.vendedorUid.size() <= 128
+        && data.vendedorNombre is string && data.vendedorNombre.size() > 0 && data.vendedorNombre.size() <= 100
+        && data.comprador is string && data.comprador.size() > 0 && data.comprador.size() <= 100
+        && data.fecha is string && data.fecha.size() <= 50
+        && data.creado is number;
+    }
+
+    // --- COLLECTION: Clientes ---
+    match /clientes/{userId} {
+      allow get: if isSignedIn() && request.auth.uid == userId;
+      allow create, update: if isSignedIn() && request.auth.uid == userId && isValidCliente(request.resource.data);
+      allow delete: if isSignedIn() && request.auth.uid == userId;
+    }
+
+    // --- COLLECTION: Mensajes ---
+    match /mensajes/{mensajeId} {
+      // Allows reading single messages if they have no owner OR match the user's Auth UID
+      allow get: if resource == null || resource.data.uid == null || (isSignedIn() && resource.data.uid == request.auth.uid);
+      
+      // Enforce query filter matching on list queries
+      allow list: if isSignedIn() && resource.data.uid == request.auth.uid;
+
+      allow create: if isValidMensaje(request.resource.data)
+        && (request.resource.data.uid == null || (isSignedIn() && request.resource.data.uid == request.auth.uid));
+
+      allow update: if isValidMensaje(request.resource.data)
+        && (resource.data.uid == null || (isSignedIn() && resource.data.uid == request.auth.uid))
+        && (request.resource.data.uid == null || (isSignedIn() && request.resource.data.uid == request.auth.uid));
+
+      allow delete: if resource.data.uid == null || (isSignedIn() && resource.data.uid == request.auth.uid);
+    }
+
+    // --- COLLECTION: Mercado (Public Ads) ---
+    match /mercado/{mensajeId} {
+      allow get, list: if true; // Public listings
+
+      allow create: if isSignedIn()
+        && request.auth.uid == request.resource.data.vendedorUid
+        && isValidAnuncio(request.resource.data)
+        // Verify underlying message ownership
+        && get(/databases/$(database)/documents/mensajes/$(mensajeId)).data.uid == request.auth.uid;
+
+      allow update, delete: if isSignedIn()
+        && request.auth.uid == resource.data.vendedorUid;
+    }
+
+    // --- COLLECTION: Ventas ---
+    match /ventas/{mensajeId} {
+      allow get: if isSignedIn() && (resource.data.vendedorUid == request.auth.uid);
+      allow list: if isSignedIn() && (resource.data.vendedorUid == request.auth.uid);
+      
+      allow create: if isSignedIn()
+        && request.auth.uid == request.resource.data.vendedorUid
+        && isValidVenta(request.resource.data);
+    }
+  }
+}

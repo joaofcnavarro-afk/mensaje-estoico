@@ -1,0 +1,6 @@
+{
+  "name": "Mensaje Estoico",
+  "description": "Recibe, sella, regala y vende mensajes estoicos personalizados, cifrados con tu código secreto y guardados en tu dispositivo o en la nube.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
